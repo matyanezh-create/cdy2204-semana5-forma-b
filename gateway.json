@@ -1,0 +1,454 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Parameters": {
+    "Issuer": {
+      "Type": "String"
+    },
+    "Audience": {
+      "Type": "String"
+    },
+    "VpcLinkId": {
+      "Type": "String"
+    },
+    "EventosListenerArn": {
+      "Type": "String"
+    },
+    "ComprasListenerArn": {
+      "Type": "String"
+    }
+  },
+  "Resources": {
+    "Api": {
+      "Type": "AWS::ApiGatewayV2::Api",
+      "Properties": {
+        "Name": "entradas-s5",
+        "ProtocolType": "HTTP"
+      }
+    },
+    "Jwt": {
+      "Type": "AWS::ApiGatewayV2::Authorizer",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "Name": "IDaaS",
+        "AuthorizerType": "JWT",
+        "IdentitySource": [
+          "$request.header.Authorization"
+        ],
+        "JwtConfiguration": {
+          "Issuer": {
+            "Ref": "Issuer"
+          },
+          "Audience": [
+            {
+              "Ref": "Audience"
+            }
+          ]
+        }
+      }
+    },
+    "Logs": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "RetentionInDays": 7
+      }
+    },
+    "Stage": {
+      "Type": "AWS::ApiGatewayV2::Stage",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "StageName": "demo",
+        "AutoDeploy": true,
+        "DefaultRouteSettings": {
+          "ThrottlingBurstLimit": 20,
+          "ThrottlingRateLimit": 10
+        },
+        "AccessLogSettings": {
+          "DestinationArn": {
+            "Fn::GetAtt": [
+              "Logs",
+              "Arn"
+            ]
+          },
+          "Format": "{\"id\":\"$context.requestId\",\"route\":\"$context.routeKey\",\"status\":\"$context.status\",\"latency\":\"$context.responseLatency\",\"integrationStatus\":\"$context.integrationStatus\"}"
+        }
+      }
+    },
+    "Eventos": {
+      "Type": "AWS::ApiGatewayV2::Integration",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "IntegrationType": "HTTP_PROXY",
+        "IntegrationMethod": "ANY",
+        "ConnectionType": "VPC_LINK",
+        "ConnectionId": {
+          "Ref": "VpcLinkId"
+        },
+        "IntegrationUri": {
+          "Ref": "EventosListenerArn"
+        },
+        "PayloadFormatVersion": "1.0",
+        "RequestParameters": {
+          "overwrite:path": "$request.path"
+        }
+      }
+    },
+    "Compras": {
+      "Type": "AWS::ApiGatewayV2::Integration",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "IntegrationType": "HTTP_PROXY",
+        "IntegrationMethod": "ANY",
+        "ConnectionType": "VPC_LINK",
+        "ConnectionId": {
+          "Ref": "VpcLinkId"
+        },
+        "IntegrationUri": {
+          "Ref": "ComprasListenerArn"
+        },
+        "PayloadFormatVersion": "1.0",
+        "RequestParameters": {
+          "overwrite:path": "$request.path"
+        }
+      }
+    },
+    "Route1": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "RouteKey": "POST /api/eventos",
+        "Target": {
+          "Fn::Join": [
+            "/",
+            [
+              "integrations",
+              {
+                "Ref": "Eventos"
+              }
+            ]
+          ]
+        },
+        "AuthorizationType": "JWT",
+        "AuthorizerId": {
+          "Ref": "Jwt"
+        },
+        "AuthorizationScopes": [
+          "resumen/acceso"
+        ]
+      }
+    },
+    "Route2": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "RouteKey": "GET /api/eventos",
+        "Target": {
+          "Fn::Join": [
+            "/",
+            [
+              "integrations",
+              {
+                "Ref": "Eventos"
+              }
+            ]
+          ]
+        },
+        "AuthorizationType": "JWT",
+        "AuthorizerId": {
+          "Ref": "Jwt"
+        },
+        "AuthorizationScopes": [
+          "resumen/acceso"
+        ]
+      }
+    },
+    "Route3": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "RouteKey": "GET /api/eventos/{id}",
+        "Target": {
+          "Fn::Join": [
+            "/",
+            [
+              "integrations",
+              {
+                "Ref": "Eventos"
+              }
+            ]
+          ]
+        },
+        "AuthorizationType": "JWT",
+        "AuthorizerId": {
+          "Ref": "Jwt"
+        },
+        "AuthorizationScopes": [
+          "resumen/acceso"
+        ]
+      }
+    },
+    "Route4": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "RouteKey": "POST /api/compras",
+        "Target": {
+          "Fn::Join": [
+            "/",
+            [
+              "integrations",
+              {
+                "Ref": "Compras"
+              }
+            ]
+          ]
+        },
+        "AuthorizationType": "JWT",
+        "AuthorizerId": {
+          "Ref": "Jwt"
+        },
+        "AuthorizationScopes": [
+          "resumen/acceso"
+        ]
+      }
+    },
+    "Route5": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "RouteKey": "GET /api/compras/{id}",
+        "Target": {
+          "Fn::Join": [
+            "/",
+            [
+              "integrations",
+              {
+                "Ref": "Compras"
+              }
+            ]
+          ]
+        },
+        "AuthorizationType": "JWT",
+        "AuthorizerId": {
+          "Ref": "Jwt"
+        },
+        "AuthorizationScopes": [
+          "resumen/acceso"
+        ]
+      }
+    },
+    "Route6": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "RouteKey": "GET /api/compras/{id}/resumen/generar",
+        "Target": {
+          "Fn::Join": [
+            "/",
+            [
+              "integrations",
+              {
+                "Ref": "Compras"
+              }
+            ]
+          ]
+        },
+        "AuthorizationType": "JWT",
+        "AuthorizerId": {
+          "Ref": "Jwt"
+        },
+        "AuthorizationScopes": [
+          "resumen/acceso"
+        ]
+      }
+    },
+    "Route7": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "RouteKey": "POST /api/compras/{id}/resumen",
+        "Target": {
+          "Fn::Join": [
+            "/",
+            [
+              "integrations",
+              {
+                "Ref": "Compras"
+              }
+            ]
+          ]
+        },
+        "AuthorizationType": "JWT",
+        "AuthorizerId": {
+          "Ref": "Jwt"
+        },
+        "AuthorizationScopes": [
+          "resumen/acceso"
+        ]
+      }
+    },
+    "Route8": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "RouteKey": "PUT /api/compras/{id}/resumen",
+        "Target": {
+          "Fn::Join": [
+            "/",
+            [
+              "integrations",
+              {
+                "Ref": "Compras"
+              }
+            ]
+          ]
+        },
+        "AuthorizationType": "JWT",
+        "AuthorizerId": {
+          "Ref": "Jwt"
+        },
+        "AuthorizationScopes": [
+          "resumen/acceso"
+        ]
+      }
+    },
+    "Route9": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "RouteKey": "GET /api/compras/{id}/resumen",
+        "Target": {
+          "Fn::Join": [
+            "/",
+            [
+              "integrations",
+              {
+                "Ref": "Compras"
+              }
+            ]
+          ]
+        },
+        "AuthorizationType": "JWT",
+        "AuthorizerId": {
+          "Ref": "Jwt"
+        },
+        "AuthorizationScopes": [
+          "resumen/acceso"
+        ]
+      }
+    },
+    "Route10": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "RouteKey": "DELETE /api/compras/{id}/resumen",
+        "Target": {
+          "Fn::Join": [
+            "/",
+            [
+              "integrations",
+              {
+                "Ref": "Compras"
+              }
+            ]
+          ]
+        },
+        "AuthorizationType": "JWT",
+        "AuthorizerId": {
+          "Ref": "Jwt"
+        },
+        "AuthorizationScopes": [
+          "resumen/acceso"
+        ]
+      }
+    },
+    "EventoPUT": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "RouteKey": "PUT /api/eventos/{id}",
+        "Target": {
+          "Fn::Join": [
+            "/",
+            [
+              "integrations",
+              {
+                "Ref": "Eventos"
+              }
+            ]
+          ]
+        },
+        "AuthorizationType": "JWT",
+        "AuthorizerId": {
+          "Ref": "Jwt"
+        },
+        "AuthorizationScopes": [
+          "resumen/acceso"
+        ]
+      }
+    },
+    "EventoDELETE": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "RouteKey": "DELETE /api/eventos/{id}",
+        "Target": {
+          "Fn::Join": [
+            "/",
+            [
+              "integrations",
+              {
+                "Ref": "Eventos"
+              }
+            ]
+          ]
+        },
+        "AuthorizationType": "JWT",
+        "AuthorizerId": {
+          "Ref": "Jwt"
+        },
+        "AuthorizationScopes": [
+          "resumen/acceso"
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "BaseUrl": {
+      "Value": {
+        "Fn::Sub": "https://${Api}.execute-api.${AWS::Region}.${AWS::URLSuffix}/demo"
+      }
+    }
+  }
+}

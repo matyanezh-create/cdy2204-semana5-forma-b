@@ -1,0 +1,552 @@
+{
+  "info": {
+    "name": "CDY2204 Semana 5 Forma B",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": ""
+    },
+    {
+      "key": "eventoId",
+      "value": ""
+    },
+    {
+      "key": "compraId",
+      "value": ""
+    },
+    {
+      "value": "http://localhost:8081",
+      "key": "eventosDirecto"
+    },
+    {
+      "value": "http://localhost:8082",
+      "key": "comprasDirecto"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 Sin token",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/eventos",
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 Token inválido",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/eventos",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "invalido",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Gateway con token sin scope",
+      "event": [
+        {
+          "script": {
+            "exec": [
+              "pm.test('HTTP 403', () => pm.response.to.have.status(403));"
+            ],
+            "type": "text/javascript"
+          },
+          "listen": "test"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "auth": {
+          "bearer": [
+            {
+              "value": "{{tokenSinScope}}",
+              "type": "string",
+              "key": "token"
+            }
+          ],
+          "type": "bearer"
+        },
+        "url": "{{baseUrl}}/api/eventos"
+      }
+    },
+    {
+      "name": "Eventos directo sin token",
+      "event": [
+        {
+          "script": {
+            "exec": [
+              "pm.test('HTTP 401', () => pm.response.to.have.status(401));"
+            ],
+            "type": "text/javascript"
+          },
+          "listen": "test"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "auth": {
+          "type": "noauth"
+        },
+        "url": "{{eventosDirecto}}/api/eventos"
+      }
+    },
+    {
+      "name": "Compras directo sin token",
+      "event": [
+        {
+          "script": {
+            "exec": [
+              "pm.test('HTTP 401', () => pm.response.to.have.status(401));"
+            ],
+            "type": "text/javascript"
+          },
+          "listen": "test"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "auth": {
+          "type": "noauth"
+        },
+        "url": "{{comprasDirecto}}/api/compras/1"
+      }
+    },
+    {
+      "name": "Eventos directo con token y scope",
+      "event": [
+        {
+          "script": {
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+            ],
+            "type": "text/javascript"
+          },
+          "listen": "test"
+        }
+      ],
+      "request": {
+        "url": "{{eventosDirecto}}/api/eventos",
+        "method": "GET"
+      }
+    },
+    {
+      "name": "Compras directo con token sin scope",
+      "event": [
+        {
+          "script": {
+            "exec": [
+              "pm.test('HTTP 403', () => pm.response.to.have.status(403));"
+            ],
+            "type": "text/javascript"
+          },
+          "listen": "test"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "auth": {
+          "bearer": [
+            {
+              "value": "{{tokenSinScope}}",
+              "type": "string",
+              "key": "token"
+            }
+          ],
+          "type": "bearer"
+        },
+        "url": "{{comprasDirecto}}/api/compras/1"
+      }
+    },
+    {
+      "name": "03 Crear evento",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/eventos",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Festival de Invierno\",\n  \"fecha\": \"2099-08-15T20:00:00-04:00\",\n  \"precio\": 15000\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+              "if (pm.response.code === 201) pm.collectionVariables.set(\"eventoId\", String(pm.response.json().id));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Listar eventos",
+      "event": [
+        {
+          "script": {
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+            ],
+            "type": "text/javascript"
+          },
+          "listen": "test"
+        }
+      ],
+      "request": {
+        "url": "{{baseUrl}}/api/eventos",
+        "method": "GET"
+      }
+    },
+    {
+      "name": "Consultar evento",
+      "event": [
+        {
+          "script": {
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+            ],
+            "type": "text/javascript"
+          },
+          "listen": "test"
+        }
+      ],
+      "request": {
+        "url": "{{baseUrl}}/api/eventos/{{eventoId}}",
+        "method": "GET"
+      }
+    },
+    {
+      "name": "Actualizar evento",
+      "event": [
+        {
+          "script": {
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+            ],
+            "type": "text/javascript"
+          },
+          "listen": "test"
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "value": "application/json",
+            "key": "Content-Type"
+          }
+        ],
+        "url": "{{baseUrl}}/api/eventos/{{eventoId}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"nombre\":\"Festival actualizado\",\"fecha\":\"2099-08-15T20:00:00-04:00\",\"precio\":15000}"
+        }
+      }
+    },
+    {
+      "name": "04 Comprar entradas",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/compras",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"eventoId\": {{eventoId}},\n  \"cantidad\": 2\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+              "if (pm.response.code === 201) pm.collectionVariables.set(\"compraId\", String(pm.response.json().id));",
+              "pm.test(\"Total de 30000 CLP\", () => pm.expect(Number(pm.response.json().precioTotal)).to.eql(30000));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 Generar y guardar archivo",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/compras/{{compraId}}/resumen/generar"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Adjunto de texto\", () => { pm.expect(pm.response.headers.get(\"Content-Disposition\")).to.include(\"attachment\"); pm.expect(pm.response.text()).to.include(\"RESUMEN DE COMPRA\"); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 Subir a S3",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/compras/{{compraId}}/resumen"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+              "pm.test(\"Prefijo igual al número\", () => pm.expect(pm.response.json().clave).to.eql(pm.collectionVariables.get(\"compraId\") + \"/resumen.txt\"));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 Rechazar subida duplicada",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/compras/{{compraId}}/resumen"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 Descargar original",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/compras/{{compraId}}/resumen"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Adjunto de texto\", () => { pm.expect(pm.response.headers.get(\"Content-Disposition\")).to.include(\"attachment\"); pm.expect(pm.response.text()).to.include(\"RESUMEN DE COMPRA\"); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 Corregir observación",
+      "request": {
+        "method": "PUT",
+        "url": "{{baseUrl}}/api/compras/{{compraId}}/resumen",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"observacion\": \"Retiro en boletería, acceso norte.\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 Verificar corrección",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/compras/{{compraId}}/resumen"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Adjunto de texto\", () => { pm.expect(pm.response.headers.get(\"Content-Disposition\")).to.include(\"attachment\"); pm.expect(pm.response.text()).to.include(\"RESUMEN DE COMPRA\"); });",
+              "pm.test(\"Corrección guardada\", () => pm.expect(pm.response.text()).to.include(\"Retiro en boletería, acceso norte.\"));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "11 Borrar resumen",
+      "request": {
+        "method": "DELETE",
+        "url": "{{baseUrl}}/api/compras/{{compraId}}/resumen"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 204\", () => pm.response.to.have.status(204));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "12 Verificar borrado",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/compras/{{compraId}}/resumen"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "13 Verificar compra conservada",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/compras/{{compraId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Desactivar evento",
+      "event": [
+        {
+          "script": {
+            "exec": [
+              "pm.test('HTTP 204', () => pm.response.to.have.status(204));"
+            ],
+            "type": "text/javascript"
+          },
+          "listen": "test"
+        }
+      ],
+      "request": {
+        "url": "{{baseUrl}}/api/eventos/{{eventoId}}",
+        "method": "DELETE"
+      }
+    },
+    {
+      "name": "Compra de evento desactivado",
+      "event": [
+        {
+          "script": {
+            "exec": [
+              "pm.test('HTTP 404', () => pm.response.to.have.status(404));"
+            ],
+            "type": "text/javascript"
+          },
+          "listen": "test"
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "value": "application/json",
+            "key": "Content-Type"
+          }
+        ],
+        "url": "{{baseUrl}}/api/compras",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"eventoId\":{{eventoId}},\"cantidad\":2}"
+        }
+      }
+    }
+  ]
+}
+

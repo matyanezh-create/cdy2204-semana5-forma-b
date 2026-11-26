@@ -1,0 +1,30 @@
+services:
+  eventos:
+    build:
+      context: .
+      args:
+        SERVICE: eventos-service
+    ports: ["8081:8081"]
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      AUTH_ISSUER: ${AUTH_ISSUER:?Configura AUTH_ISSUER}
+      AUTH_CLIENT_ID: ${AUTH_CLIENT_ID:?Configura AUTH_CLIENT_ID}
+    volumes: ["eventos-data:/app/data"]
+  compras:
+    build:
+      context: .
+      args:
+        SERVICE: compras-service
+    ports: ["8082:8082"]
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      AUTH_ISSUER: ${AUTH_ISSUER:?Configura AUTH_ISSUER}
+      AUTH_CLIENT_ID: ${AUTH_CLIENT_ID:?Configura AUTH_CLIENT_ID}
+      RESUMEN_BUCKET: ${RESUMEN_BUCKET:-}
+      RESUMEN_REGION: ${RESUMEN_REGION:-us-east-1}
+      EVENTOS_BASE_URL: http://eventos:8081
+    volumes: ["compras-data:/app/data"]
+volumes:
+  eventos-data:
+  compras-data:
+

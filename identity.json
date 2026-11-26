@@ -1,0 +1,107 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Parameters": {
+    "DomainPrefix": {
+      "Type": "String"
+    },
+    "CallbackUrl": {
+      "Type": "String",
+      "Default": "https://oauth.pstmn.io/v1/browser-callback"
+    }
+  },
+  "Resources": {
+    "Pool": {
+      "Type": "AWS::Cognito::UserPool",
+      "Properties": {
+        "UserPoolName": "entradas-s5",
+        "AdminCreateUserConfig": {
+          "AllowAdminCreateUserOnly": true
+        }
+      }
+    },
+    "Domain": {
+      "Type": "AWS::Cognito::UserPoolDomain",
+      "Properties": {
+        "Domain": {
+          "Ref": "DomainPrefix"
+        },
+        "UserPoolId": {
+          "Ref": "Pool"
+        }
+      }
+    },
+    "ApiScopes": {
+      "Type": "AWS::Cognito::UserPoolResourceServer",
+      "Properties": {
+        "UserPoolId": {
+          "Ref": "Pool"
+        },
+        "Identifier": "resumen",
+        "Name": "Entradas Cloud",
+        "Scopes": [
+          {
+            "ScopeName": "acceso",
+            "ScopeDescription": "Acceso a eventos, compras y resúmenes"
+          }
+        ]
+      }
+    },
+    "PostmanClient": {
+      "Type": "AWS::Cognito::UserPoolClient",
+      "DependsOn": "ApiScopes",
+      "Properties": {
+        "ClientName": "entradas-s5-postman",
+        "UserPoolId": {
+          "Ref": "Pool"
+        },
+        "GenerateSecret": false,
+        "SupportedIdentityProviders": [
+          "COGNITO"
+        ],
+        "AllowedOAuthFlowsUserPoolClient": true,
+        "AllowedOAuthFlows": [
+          "code"
+        ],
+        "AllowedOAuthScopes": [
+          "openid",
+          "resumen/acceso"
+        ],
+        "CallbackURLs": [
+          {
+            "Ref": "CallbackUrl"
+          }
+        ],
+        "PreventUserExistenceErrors": "ENABLED",
+        "AccessTokenValidity": 15,
+        "TokenValidityUnits": {
+          "AccessToken": "minutes"
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "PoolId": {
+      "Value": {
+        "Ref": "Pool"
+      }
+    },
+    "Issuer": {
+      "Value": {
+        "Fn::Sub": "https://cognito-idp.${AWS::Region}.${AWS::URLSuffix}/${Pool}"
+      }
+    },
+    "ClientId": {
+      "Value": {
+        "Ref": "PostmanClient"
+      }
+    },
+    "Scope": {
+      "Value": "resumen/acceso"
+    },
+    "HostedDomain": {
+      "Value": {
+        "Fn::Sub": "https://${DomainPrefix}.auth.${AWS::Region}.amazoncognito.com"
+      }
+    }
+  }
+}
